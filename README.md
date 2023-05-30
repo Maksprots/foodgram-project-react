@@ -41,6 +41,14 @@ docker-compose exec backend python manage.py data_test
 
 ***Технологии:***  
 Python 3.9, Django 3.2, DRF 3.13, Nginx, Docker, Docker-compose, Postgresql, Github Actions.  
+
 ***Cервер:***
 IP 158.160.28.249
 
+***Админка:***
+Login: admin
+Password: admin777
+
+***Тестовый пользователь:***
+email: user1@yandex.ru
+password: Qwerty999
