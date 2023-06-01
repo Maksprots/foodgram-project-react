@@ -20,7 +20,7 @@ services:
       - ./.env
 
   frontend:
-    image: maksprots/foodgram_backend:latest
+    image: maksprots/foodgram_frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:
