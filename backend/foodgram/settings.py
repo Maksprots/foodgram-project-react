@@ -11,7 +11,7 @@ SECRET_KEY = os.getenv(
     'SECRET_KEY',
     default='8gmelpy0)8icp0##o(0#xy8#19p7ma6v4+pbnc)gsc3k64l!ce')
 
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
@@ -132,3 +132,21 @@ DJOSER = {
 MAX_LEN_USER_EMAIL = 256
 MAX_LEN_USER_FIELD = 150
 EMPTY_VALUE_DISPLAY = '-empty-'
+EMPTY_CART = 'В корзине нет товаров'
+SHOPPING_LIST = 'Список покупок:'
+ERROR_FOLLOW_AUTHOR = 'Вы не были подписаны на автора'
+ERROR_FAVORITE_RECIPE = 'Рецепт не в избранном'
+ERROR_RECIPE_DOESNT_CART = 'Рецепта нет в корзине'
+ERROR_TAG = 'Ошибка в Тэге, id = {pk_value} не существует'
+MIN_LEN_NAME_RECIPE = 'Название рецепта минимум 4 символа'
+ERROR_INGREDIENT_ID = 'Ингредиента с id - {ingredient} нет'
+ERROR_INGREDIENTS_REPEAT = 'Ингредиенты не должны повторяться!'
+ERROR_TAG_REPEAT = 'Тэги не должны повторяться!'
+MIN_AMOUNT_OF_INGREDIENT = 'Минимальное количество ингридиента 1'
+INTERVAL_OF_COOKING = 'Время приготовления блюда от 1 до 300 минут'
+ERROR_EQUAL_PASSWORD = "Пароли не должны совпадать"
+ERROR_WRONG_PASSWORD = "Введен неверный пароль"
+ERROR_FOLLOW_YOUSELF = 'Нельзя подписаться на самого себя'
+ERROR_ALREADY_FOLLOW = 'Вы уже подписаны на данного пользователя'
+RECIPE_ALREADY_IN_FAVORITE = 'Рецепт уже в избранном'
+RECIPE_ALREADY_IN_SHOPLIST = 'Рецепт уже добавлен в список покупок'

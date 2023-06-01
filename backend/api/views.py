@@ -1,4 +1,3 @@
-from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -8,19 +7,20 @@ from rest_framework.decorators import action
 from rest_framework.permissions import (SAFE_METHODS, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
+from django.conf import settings
+
+from recipes.models import (Cart, FavoriteRecipe, Ingredient, Recipe,
+                            Subscribe, Tag)
 
 from .filters import IngredientFilter, RecipesFilter
 from .mixins import CreateDestroyViewSet
 from .permissions import IsAuthorOrReadOnly
-from .serializers import (FavoriteRecipeSerializer, IngredientSerializer,
-                          RecipeEditSerializer, RecipeReadSerializer,
-                          SetPasswordSerializer, CartSerializer,
+from .serializers import (CartSerializer, FavoriteRecipeSerializer,
+                          IngredientSerializer, RecipeEditSerializer,
+                          RecipeReadSerializer, SetPasswordSerializer,
                           SubscribeSerializer, TagSerializer,
                           UserCreateSerializer, UserListSerializer)
-from recipes.models import (FavoriteRecipe, Ingredient, Recipe, Cart,
-                            Subscribe, Tag)
-
-User = get_user_model()
+from users.User import User
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
@@ -37,34 +37,48 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @action(
-        detail=False,
-        methods=('get',),
-        url_path='download_shopping_cart',
-        pagination_class=None)
-    def download_file(self, request):
-        user = request.user
-        if not user.cart.exists():
-            return Response(
-                'В корзине нет товаров', status=status.HTTP_400_BAD_REQUEST)
+    def get_serializer_context(self):
+        return {
+            'request': self.request,
+            'format': self.format_kwarg,
+            'view': self,
+            'favorited': set(FavoriteRecipe.objects.filter(
+                user_id=self.request.user
+            ).values_list('favorite_recipe', flat=True)),
+            'in_shopping_cart': set(Cart.objects.filter(
+                user_id=self.request.user
+            ).values_list('recipe_cart', flat=True))
+        }
 
-        text = 'Список покупок:\n\n'
-        ingredient_name = 'recipe__recipe__ingredient__name'
-        ingredient_unit = 'recipe__recipe__ingredient__measurement_unit'
-        recipe_amount = 'recipe__recipe__amount'
-        amount_sum = 'recipe__recipe__amount__sum'
-        cart = user.cart.select_related('recipe').values(
-            ingredient_name, ingredient_unit).annotate(Sum(recipe_amount)) \
-            .order_by(ingredient_name)
-        for _ in cart:
-            text += (
-                f'{_[ingredient_name]} ({_[ingredient_unit]})'
-                f' — {_[amount_sum]}\n'
-            )
-        response = HttpResponse(text, content_type='text/plain')
-        filename = 'shopping_list.txt'
-        response['Content-Disposition'] = f'attachment; filename={filename}'
-        return response
+
+@action(
+    detail=False,
+    methods=('get',),
+    url_path='download_shopping_cart',
+    pagination_class=None)
+def download_file(self, request):
+    user = request.user
+    if not user.cart.exists():
+        return Response(
+            settings.EMPTY_CART, status=status.HTTP_400_BAD_REQUEST)
+
+    text = settings.SHOPPING_LIST + '\n\n'
+    ingredient_name = 'recipe__recipe__ingredient__name'
+    ingredient_unit = 'recipe__recipe__ingredient__measurement_unit'
+    recipe_amount = 'recipe__recipe__amount'
+    amount_sum = 'recipe__recipe__amount__sum'
+    cart = user.cart.select_related('recipe').values(
+        ingredient_name, ingredient_unit).annotate(Sum(recipe_amount)) \
+        .order_by(ingredient_name)
+    for _ in cart:
+        text += (
+            f'{_[ingredient_name]} ({_[ingredient_unit]})'
+            f' — {_[amount_sum]}\n'
+        )
+    response = HttpResponse(text, content_type='text/plain')
+    filename = 'shopping_list.txt'
+    response['Content-Disposition'] = f'attachment; filename={filename}'
+    return response
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
@@ -97,6 +111,18 @@ class CustomUserViewSet(UserViewSet):
         if self.action == 'me':
             self.permission_classes = [IsAuthenticated]
         return super().get_permissions()
+
+    def get_serializer_context(self):
+
+        return {'request': self.request,
+                'format': self.format_kwarg,
+                'view': self,
+                'subscriptions': set(
+                    Subscribe.objects.filter(
+                        user_id=self.request.user
+                    ).values_list('author_id', flat=True)
+                )
+                }
 
     @action(
         detail=False,
@@ -131,12 +157,24 @@ class SubscribeViewSet(CreateDestroyViewSet):
             )
         )
 
+    def get_serializer_context(self):
+        return {
+            'request': self.request,
+            'format': self.format_kwarg,
+            'view': self,
+            'subscriptions': set(
+                Subscribe.objects.filter(
+                    user_id=self.request.user
+                ).values_list('author_id', flat=True)
+            )
+        }
+
     @action(methods=('delete',), detail=True)
     def delete(self, request, user_id):
         get_object_or_404(User, id=user_id)
         if not Subscribe.objects.filter(
                 user=request.user, author_id=user_id).exists():
-            return Response({'errors': 'Вы не были подписаны на автора'},
+            return Response({'errors': settings.ERROR_FOLLOW_AUTHOR},
                             status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(
             Subscribe,
@@ -173,7 +211,7 @@ class FavoriteRecipeViewSet(CreateDestroyViewSet):
         if not u.favorite.select_related(
                 'favorite_recipe').filter(favorite_recipe_id=recipe_id) \
                 .exists():
-            return Response({'errors': 'Рецепт не в избранном'},
+            return Response({'errors': settings.ERROR_FAVORITE_RECIPE},
                             status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(
             FavoriteRecipe,
@@ -208,7 +246,7 @@ class CartViewSet(CreateDestroyViewSet):
         u = request.user
         if not u.shopping_cart.select_related(
                 'recipe').filter(recipe_id=recipe_id).exists():
-            return Response({'errors': 'Рецепта нет в корзине'},
+            return Response({'errors': settings.ERROR_RECIPE_DOESNT_CART},
                             status=status.HTTP_400_BAD_REQUEST)
         get_object_or_404(
             Cart,
