@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv(
@@ -142,7 +142,7 @@ MIN_LEN_NAME_RECIPE = 'Название рецепта минимум 4 симв
 ERROR_INGREDIENT_ID = 'Ингредиента с id - {ingredient} нет'
 ERROR_INGREDIENTS_REPEAT = 'Ингредиенты не должны повторяться!'
 ERROR_TAG_REPEAT = 'Тэги не должны повторяться!'
-MIN_AMOUNT_OF_INGREDIENT = 'Минимальное количество ингридиента 1'
+MIN_AMOUNT_OF_INGREDIENT = 'Ингридиента не может быть меньше одной единицы измерения'
 INTERVAL_OF_COOKING = 'Время приготовления блюда от 1 до 300 минут'
 ERROR_EQUAL_PASSWORD = "Пароли не должны совпадать"
 ERROR_WRONG_PASSWORD = "Введен неверный пароль"
